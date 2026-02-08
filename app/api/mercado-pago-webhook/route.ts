@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         { headers: { Authorization: `Bearer ${token}` } },
       )
       const payment = await resPayment.json()
-      console.log('Detalhes do pagamento:', payment)
+      console.log('1 | Detalhes do pagamento:', payment)
 
       // Confere status
       if (payment.status !== 'approved') {
@@ -39,11 +39,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true })
       }
 
-      const resOrder = await fetch(merchantOrderUrl, {
+      const resOrder = await fetch(payment.order?.resource, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const order = await resOrder.json()
-      console.log('Detalhes da ordem:', order)
+      console.log('2 | Detalhes da ordem:', order)
 
       // Atualiza os itens conforme os payments da order
       for (const p of order.payments || []) {
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
           },
         })
 
-        console.log(`Item ${itemId} atualizado com ${quantidade} cotas`)
+        console.log(`3 | Item ${itemId} atualizado com ${quantidade} cotas`)
       }
     }
 
