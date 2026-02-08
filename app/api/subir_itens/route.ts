@@ -2,9 +2,21 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '../../lib/prisma'
+import { Prisma } from '@prisma/client'
 import * as XLSX from 'xlsx'
 import fs from 'fs'
 import path from 'path'
+
+interface ExcelRow {
+  nome: string
+  categoria?: string
+  descricao?: string
+  imagemUrl?: string
+  prioridade?: string
+  quantidade?: number
+  preco: number | string
+  linkFora?: string
+}
 
 export async function POST() {
   try {
@@ -15,7 +27,7 @@ export async function POST() {
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     //
-    const rows = XLSX.utils.sheet_to_json<any>(sheet)
+    const rows = XLSX.utils.sheet_to_json<ExcelRow>(sheet)
 
     const itens = rows
       .map((row) => {
@@ -42,12 +54,12 @@ export async function POST() {
 
         return {
           listaId,
-          nome: String(row.nome),
-          categoria: String(row.categoria || ''),
-          descricao: String(row.descricao || ''),
-          imagemUrl: String(row.imagemUrl || ''),
-          prioridade: String(row.prioridade || 'media'),
-          quantidade: Number(row.quantidade || 1),
+          nome: String(row.nome ?? ''),
+          categoria: String(row.categoria ?? ''),
+          descricao: String(row.descricao ?? ''),
+          imagemUrl: String(row.imagemUrl ?? ''),
+          prioridade: String(row.prioridade ?? 'media'),
+          quantidade: Number(row.quantidade ?? 1),
           preco, // ✅ agora correto
           cotas: 0,
           cotasReservadas: 0,
@@ -57,12 +69,12 @@ export async function POST() {
           reservadoEm: null,
           linkFora: row.linkFora ? String(row.linkFora) : null,
           compradoFora: false,
-        }
+        } as Prisma.ItemCreateManyInput
       })
       .filter(Boolean)
 
     await prisma.item.createMany({
-      data: itens,
+      data: itens.filter((i): i is Prisma.ItemCreateManyInput => i !== null),
     })
 
     return NextResponse.json({
