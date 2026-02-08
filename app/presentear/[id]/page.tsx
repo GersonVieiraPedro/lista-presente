@@ -54,13 +54,17 @@ export default function DetalhesPresente() {
     if (!presente) return
 
     try {
-      const res = await fetch('/api/pix', {
+      const res = await fetch('/api/pagar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           valor: totalPagar,
           descricao: `🎁 ${presente.nome}`,
           ambiente: 'sandbox', // ou 'prod' quando for produção
+          external_reference: JSON.stringify({
+            id: presente.id,
+            quantidade: quantidade,
+          }), // para referência futura no webhook
         }),
       })
 
@@ -86,7 +90,10 @@ export default function DetalhesPresente() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
         <h1 className="text-xl font-bold">Presente não encontrado</h1>
-        <Link href="/lista" className="mt-4 p-5 text-blue-500 underline">
+        <Link
+          href="/lista"
+          className="mt-4 flex items-center gap-2 p-5 text-blue-500 underline"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"

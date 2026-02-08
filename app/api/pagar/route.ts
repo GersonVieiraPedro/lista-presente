@@ -45,6 +45,7 @@ export async function POST(req: Request) {
             failure: `${process.env.NEXT_PUBLIC_WEBHOOK_URL}/pagamento/erro`,
           },
           notification_url: notificationUrl,
+          external_reference: body.external_reference, // para referência futura no webhook
 
           auto_return: 'approved',
           binary_mode: false,

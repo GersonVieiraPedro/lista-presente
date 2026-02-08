@@ -125,16 +125,22 @@ export default function AreaLogada() {
 
   if (!session) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100 px-4 text-gray-500">
+      <div className="flex h-screen items-center justify-center bg-gray-100 px-4">
         <div className="flex w-full max-w-sm flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-lg">
-          <h1 className="mb-4 text-center text-xl font-semibold">
+          {/* Cabeçalho */}
+          <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">
             Confirmação de Presença
           </h1>
+          <p className="mb-6 text-center text-sm text-gray-500">
+            Para confirmar sua presença, faça login com sua conta Google.
+          </p>
 
+          {/* Botão de login */}
           <button
             onClick={() => signIn('google')}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border py-3 text-sm font-medium"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
           >
+            {/* Ícone do Google */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -143,6 +149,12 @@ export default function AreaLogada() {
             />
             Entrar com Google
           </button>
+
+          {/* Informação adicional */}
+          <p className="mt-4 text-center text-xs text-gray-400">
+            Seus dados serão usados apenas para confirmar sua presença e não
+            serão compartilhados.
+          </p>
         </div>
       </div>
     )
