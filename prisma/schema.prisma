@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Lista {
+  id           String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  slug         String    @unique
+  titulo       String
+  descricao    String?
+  dataInicio   DateTime
+  dataFim      DateTime?
+  moeda        String    @default("BRL")
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @default(now()) @updatedAt
+  itens        Item[]
+}
+
+model Item {
+  id              String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  listaId         String
+  nome            String
+  categoria       String
+  descricao       String?
+  imagemUrl       String?
+  prioridade      Prioridade
+  quantidade      Int
+  preco           Float
+  cotas           Int?
+  cotasReservadas Int        @default(0)
+  cotasValor      Float?
+  reservado       Boolean    @default(false)
+  reservadoPor    String?
+  reservadoEm     DateTime?
+  compradoFora    Boolean    @default(false)
+  criadoEm        DateTime   @default(now())
+  atualizadoEm    DateTime   @default(now()) @updatedAt
+  linkFora        String?
+  lista           Lista      @relation(fields: [listaId], references: [id])
+}
+
+enum Prioridade {
+  alta
+  media
+  baixa
+}
+
+
+model Usuario {
+  id            String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  email         String   @unique
+  nome          String?
+  imagemUrl     String?
+  confirmouPresenca Boolean  @default(false)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @default(now()) @updatedAt
+  presencas      Presenca[]
+}
+
+model Presenca {
+  id               String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  nome             String
+  tipo             String
+  acompanhante     Boolean
+  responsavelEmail String
+
+  usuarioId        String?
+  usuario          Usuario? @relation(fields: [usuarioId], references: [id])
+
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @default(now()) @updatedAt
+}
+

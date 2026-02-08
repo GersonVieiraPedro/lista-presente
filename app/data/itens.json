@@ -1,0 +1,149 @@
+{
+  "idLista": "cha-cozinha",
+  "titulo": "Chá de Casa Nova 🏡",
+  "moeda": "BRL",
+  "itens": [
+    {
+      "id": "1",
+      "nome": "Jogo de Panelas Inox (5 peças)",
+      "categoria": "Panelas",
+      "preco": 899.90,
+      "imagemUrl": "https://t62533.vteximg.com.br/arquivos/ids/945641-1000-1000/20298061PDM001G.jpg?v=638627823856770000",
+      "prioridade": "alta",
+      "reservado": false,
+      "cotas": 10,
+      "cotasReservadas": 4,
+      "cotasValor": 89.99,
+      "descricao": "Conjunto completo em aço inox para o dia a dia."
+    },
+    {
+      "id": "2",
+      "nome": "Air Fryer 4L",
+      "categoria": "Eletrodomésticos",
+      "preco": 549.90,
+      "imagemUrl": "https://cdn.sistemawbuy.com.br/arquivos/f8d1f4a04e988aeb5f9660e041392be7/produtos/66bce246bcc7f/101db-fritadeira-air-fryer-digital-69l-telefunken-easy-fryer-6900-01-66bce25e978b3.jpg",
+      "prioridade": "alta",
+      "reservado": true,
+      "reservadoPor": "Mariana"
+    },
+    {
+      "id": "3",
+      "nome": "Conjunto de Pratos Brancos (6 peças)",
+      "categoria": "Louças",
+      "preco": 299.90,
+      "imagemUrl": "https://images.tcdn.com.br/img/img_prod/710023/pratos_fundos_brancos_porto_brasil_roma_6_unidades_623_2_20191111153817.jpg",
+      "prioridade": "media",
+      "reservado": false
+    },
+    {
+      "id": "4",
+      "nome": "Conjunto de Copos de Vidro (6 peças)",
+      "categoria": "Vidros",
+      "preco": 149.90,
+      "imagemUrl": "https://io.convertiez.com.br/m/feiradamadrugada/shop/products/images/418588163/medium/conjunto-jogo-de-copos-cristal-6-unidades-365ml-_224948.jpg",
+      "prioridade": "baixa",
+      "reservado": false
+    },
+    {
+      "id": "5",
+      "nome": "Jogo De Facas Tramontina Inox (6 Peças)",
+      "categoria": "Utensílios",
+      "preco":  305.90,
+      "imagemUrl": "https://assets.tramontina.com.br/upload/tramon/imagens/CUT/23899060PDM001G.jpg",
+      "prioridade": "baixa",
+      "reservado": false
+    },
+    {
+      "id": "6",
+      "nome": "Jogo de Talheres Inox (24 peças)",
+      "categoria": "Talheres",
+      "preco": 199.90,
+      "imagemUrl": "https://picsum.photos/seed/talheres/600/600",
+      "prioridade": "media",
+      "reservado": true,
+      "reservadoPor": "Carlos"
+    },
+    {
+      "id": "7",
+      "nome": "Potes Herméticos (Kit com 5)",
+      "categoria": "Organização",
+      "preco": 129.90,
+      "imagemUrl": "https://picsum.photos/seed/potes/600/600",
+      "prioridade": "media",
+      "reservado": false
+    },
+    {
+      "id": "8",
+      "nome": "Tábua de Corte em Madeira",
+      "categoria": "Utensílios",
+      "preco": 89.90,
+      "imagemUrl": "https://picsum.photos/seed/tabua/600/600",
+      "prioridade": "baixa",
+      "reservado": false
+    },
+    {
+      "id": "9",
+      "nome": "Escorredor de Louças Inox",
+      "categoria": "Organização",
+      "preco": 179.90,
+      "imagemUrl": "https://picsum.photos/seed/escorredor/600/600",
+      "prioridade": "media",
+      "reservado": false
+    },
+    {
+      "id": "10",
+      "nome": "Liquidificador 800W",
+      "categoria": "Eletrodomésticos",
+      "preco": 399.90,
+      "imagemUrl": "https://picsum.photos/seed/liquidificador/600/600",
+      "prioridade": "alta",
+      "reservado": false
+    },
+    {
+      "id": "11",
+      "nome": "Jogo Americano (4 unidades)",
+      "categoria": "Mesa Posta",
+      "preco": 119.90,
+      "imagemUrl": "https://picsum.photos/seed/jogoamericano/600/600",
+      "prioridade": "baixa",
+      "reservado": false
+    },
+    {
+      "id": "12",
+      "nome": "Porta-Temperos Giratório",
+      "categoria": "Organização",
+      "preco": 159.90,
+      "imagemUrl": "https://picsum.photos/seed/temperos/600/600",
+      "prioridade": "media",
+      "reservado": true,
+      "reservadoPor": "Fernanda"
+    },
+    {
+      "id": "13",
+      "nome": "Concha e Espátula de Silicone",
+      "categoria": "Utensílios",
+      "preco": 79.90,
+      "imagemUrl": "https://picsum.photos/seed/silicone/600/600",
+      "prioridade": "baixa",
+      "reservado": false
+    },
+    {
+      "id": "14",
+      "nome": "Panela de Pressão Elétrica",
+      "categoria": "Eletrodomésticos",
+      "preco": 699.90,
+      "imagemUrl": "https://picsum.photos/seed/pressao/600/600",
+      "prioridade": "alta",
+      "reservado": false
+    },
+    {
+      "id": "15",
+      "nome": "Boleira com Tampa",
+      "categoria": "Mesa Posta",
+      "preco": 139.90,
+      "imagemUrl": "https://picsum.photos/seed/boleira/600/600",
+      "prioridade": "baixa",
+      "reservado": false
+    }
+  ]
+}
