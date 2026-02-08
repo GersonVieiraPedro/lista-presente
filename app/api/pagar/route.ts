@@ -3,11 +3,11 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { valor, descricao, ambiente } = body // ambiente: 'sandbox' | 'prod'
+    const { valor, descricao } = body // ambiente: 'sandbox' | 'prod'
 
     // Define token dependendo do ambiente
     const token =
-      ambiente === 'prod'
+      process.env.AMBIENTE === 'prod'
         ? process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
         : process.env.MERCADO_PAGO_ACCESS_TOKEN_TESTE
 
@@ -65,7 +65,9 @@ export async function POST(req: Request) {
     // Retorna o link correto para o frontend abrir
     return NextResponse.json({
       init_point:
-        ambiente === 'prod' ? data.init_point : data.sandbox_init_point,
+        process.env.AMBIENTE === 'prod'
+          ? data.init_point
+          : data.sandbox_init_point,
     })
   } catch (err) {
     console.error('Erro interno no backend:', err)

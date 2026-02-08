@@ -9,10 +9,17 @@ export async function POST(req: Request) {
     const body = await req.json()
     console.log('Webhook Mercado Pago recebido:', body)
 
-    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
+    // Define token dependendo do ambiente
+    const token =
+      process.env.AMBIENTE === 'prod'
+        ? process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
+        : process.env.MERCADO_PAGO_ACCESS_TOKEN_TESTE
+
     if (!token) {
-      console.error('Token Mercado Pago não definido!')
-      return NextResponse.json({ received: false }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Token do Mercado Pago não definido' },
+        { status: 500 },
+      )
     }
 
     // Função auxiliar para processar pagamentos aprovados
