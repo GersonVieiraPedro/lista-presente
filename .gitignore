@@ -21,6 +21,9 @@
 /build
 *.xlsx
 
+# Ignorar rota de upload de itens Excel
+/app/api/subir_itens/*
+
 # misc
 .DS_Store
 *.pem
