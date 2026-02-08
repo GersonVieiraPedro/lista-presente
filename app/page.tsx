@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { AcompanhanteInput } from './components/inputsAcompanhantes'
 import { Session } from 'next-auth'
 import Link from 'next/link'
+import { templateConfirmacaoPresenca } from './utils/emailTamplate'
 type Acompanhante = {
   id: string
   nome: string
@@ -129,7 +130,46 @@ export default function AreaLogada() {
   const acompanhantesPreenchidos = acompanhantes.filter(
     (a) => a.nome.trim() !== '',
   )
+  const enviarEmail = async () => {
+    const email = session?.user?.email ? session.user.email : ''
+    const res = await fetch('/api/enviar-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: [email, 'vitoria20.03@hotmail.com', 'gerson123vieira@gmail.com'],
+        subject: 'Confirmação de Presença Chá de Casa Nova',
+        html: templateConfirmacaoPresenca(session?.user?.name || 'Convidado'),
+      }),
+    })
 
+    const data = await res.json()
+    console.log(data)
+  }
+
+  const confirmarPresenca = async () => {
+    setShowModal(false)
+    try {
+      const res = await fetch('/api/presenca', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acompanhantes: acompanhantesPreenchidos,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro desconhecido')
+
+      setShowModal(false)
+      alert('Presença confirmada ✅')
+      enviarEmail() // Envia o e-mail de confirmação
+      window.location.reload() // Recarrega a página para atualizar o estado de presença
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      alert('Erro ao salvar presença: ' + err.message)
+    }
+  }
   if (!session) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 px-4">
@@ -144,7 +184,9 @@ export default function AreaLogada() {
 
           {/* Botão de login */}
           <button
-            onClick={() => signIn('google')}
+            onClick={() => {
+              signIn('google')
+            }}
             className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
           >
             {/* Ícone do Google */}
@@ -303,31 +345,7 @@ export default function AreaLogada() {
               </button>
 
               <button
-                onClick={async () => {
-                  setShowModal(false)
-                  try {
-                    const res = await fetch('/api/presenca', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        acompanhantes: acompanhantesPreenchidos,
-                      }),
-                    })
-
-                    const data = await res.json()
-                    if (!res.ok)
-                      throw new Error(data.error || 'Erro desconhecido')
-
-                    setShowModal(false)
-                    alert('Presença confirmada ✅')
-
-                    window.location.reload() // Recarrega a página para atualizar o estado de presença
-
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  } catch (err: any) {
-                    alert('Erro ao salvar presença: ' + err.message)
-                  }
-                }}
+                onClick={confirmarPresenca}
                 className="w-1/2 cursor-pointer rounded-xl bg-black py-2 text-sm text-white transition hover:bg-gray-700"
               >
                 Confirmar
