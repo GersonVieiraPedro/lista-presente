@@ -12,11 +12,11 @@ export async function POST(req: Request) {
     const token = process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
     if (!token) throw new Error('MERCADO_PAGO_ACCESS_TOKEN_PROD não definido')
 
-    // Caso o webhook seja de payment
+    // === 1. Se for webhook de payment ===
     if (body.type === 'payment' && body.data?.id) {
       const paymentId = body.data.id
 
-      // Consulta o payment para pegar o external_reference
+      // Consulta do pagamento para pegar external_reference e order
       const resPayment = await fetch(
         `https://api.mercadopago.com/v1/payments/${paymentId}`,
         { headers: { Authorization: `Bearer ${token}` } },
@@ -24,31 +24,73 @@ export async function POST(req: Request) {
       const payment = await resPayment.json()
       console.log('1 | Detalhes do pagamento:', payment)
 
-      // Confere status
       if (payment.status !== 'approved') {
         console.log('Pagamento ainda não aprovado:', payment.status)
         return NextResponse.json({ received: true })
       }
 
-      // Consulta a order (link do merchant_order)
-      const merchantOrderUrl = payment.order?.id
-        ? `https://api.mercadolibre.com/merchant_orders/${payment.order.id}`
-        : payment.order?.resource
-      if (!merchantOrderUrl) {
-        console.warn('Não encontrou link da order no pagamento')
-        return NextResponse.json({ received: true })
+      // Se houver order, usa a order para processar todos os payments
+      if (payment.order?.id || payment.order?.resource) {
+        const merchantOrderUrl =
+          payment.order?.resource ||
+          `https://api.mercadolibre.com/merchant_orders/${payment.order.id}`
+
+        const resOrder = await fetch(merchantOrderUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const order = await resOrder.json()
+        console.log('2 | Detalhes da ordem:', order)
+
+        for (const p of order.payments || []) {
+          if (p.status !== 'approved' || !p.external_reference) continue
+
+          const ref = JSON.parse(p.external_reference)
+          const itemId = ref.id
+          const quantidade = ref.quantidade ?? 1
+
+          const select = await prisma.item.findUnique({ where: { id: itemId } })
+          if (!select) {
+            console.warn('Item não encontrado:', itemId)
+            continue
+          }
+
+          const reservadoPorAtual = select.reservadoPor
+            ? [...select.reservadoPor.split(','), p.payer?.name].join(', ')
+            : (p.payer?.name ?? 'desconhecido')
+
+          const cotasDisponiveis =
+            (select.cotas ?? 1) - (select.cotasReservadas ?? 0)
+
+          await prisma.item.update({
+            where: { id: itemId },
+            data: {
+              cotasReservadas:
+                cotasDisponiveis >= quantidade
+                  ? { increment: quantidade }
+                  : { increment: cotasDisponiveis },
+              reservado: cotasDisponiveis <= quantidade,
+              reservadoPor: reservadoPorAtual,
+              reservadoEm: new Date(),
+            },
+          })
+
+          console.log(`3 | Item ${itemId} atualizado com ${quantidade} cotas`)
+        }
       }
 
-      const resOrder = await fetch(payment.order?.resource, {
+      return NextResponse.json({ received: true })
+    }
+
+    // === 2. Se for webhook de merchant_order direto ===
+    if (body.topic === 'merchant_order' && body.resource) {
+      const resOrder = await fetch(body.resource, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const order = await resOrder.json()
-      console.log('2 | Detalhes da ordem:', order)
+      console.log('Detalhes da ordem recebida (merchant_order):', order)
 
-      // Atualiza os itens conforme os payments da order
       for (const p of order.payments || []) {
-        if (p.status !== 'approved') continue
-        if (!p.external_reference) continue
+        if (p.status !== 'approved' || !p.external_reference) continue
 
         const ref = JSON.parse(p.external_reference)
         const itemId = ref.id
@@ -67,7 +109,6 @@ export async function POST(req: Request) {
         const cotasDisponiveis =
           (select.cotas ?? 1) - (select.cotasReservadas ?? 0)
 
-        // Atualiza o item no banco
         await prisma.item.update({
           where: { id: itemId },
           data: {
@@ -81,10 +122,14 @@ export async function POST(req: Request) {
           },
         })
 
-        console.log(`3 | Item ${itemId} atualizado com ${quantidade} cotas`)
+        console.log(`Item ${itemId} atualizado com ${quantidade} cotas`)
       }
+
+      return NextResponse.json({ received: true })
     }
 
+    // Se não for payment nem merchant_order
+    console.log('Webhook recebido não tratado:', body)
     return NextResponse.json({ received: true })
   } catch (err) {
     console.error('Erro no webhook:', err)
