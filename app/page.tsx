@@ -124,6 +124,7 @@ export default function AreaLogada() {
   )
 
   if (!session) {
+    sessionStorage.setItem('session', JSON.stringify(session))
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 px-4">
         <div className="flex w-full max-w-sm flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-lg">
@@ -243,7 +244,10 @@ export default function AreaLogada() {
           </>
         )}
         <button
-          onClick={() => signOut()}
+          onClick={() => {
+            signOut()
+            sessionStorage.removeItem('session')
+          }}
           className="mt-4 w-full text-center text-xs text-gray-400 underline"
         >
           Sair

@@ -59,8 +59,11 @@ export async function POST(req: Request) {
       }
 
       const reservadoPorAtual = item.reservadoPor
-        ? [...item.reservadoPor.split(','), payment.payer?.name].join(', ')
-        : (payment.payer?.name ?? 'desconhecido')
+        ? [
+            ...item.reservadoPor.split(','),
+            payment.external_reference?.usuarioName,
+          ].join(', ')
+        : (payment.external_reference?.usuarioName ?? 'desconhecido')
 
       const cotasDisponiveis = (item.cotas ?? 1) - (item.cotasReservadas ?? 0)
 

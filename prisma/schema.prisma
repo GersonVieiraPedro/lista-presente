@@ -85,3 +85,26 @@ model WebhookLog {
   itemIdsAffected   String[]  @default([])
   logs              String[]
 }
+
+
+model item_backup {
+  id              String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  listaId         String
+  nome            String
+  categoria       String
+  descricao       String?
+  imagemUrl       String?
+  prioridade      Prioridade
+  quantidade      Int
+  preco           Float
+  cotas           Int?
+  cotasReservadas Int        @default(0)
+  cotasValor      Float?
+  reservado       Boolean    @default(false)
+  reservadoPor    String?
+  reservadoEm     DateTime?
+  compradoFora    Boolean    @default(false)
+  criadoEm        DateTime   @default(now())
+  atualizadoEm    DateTime   @default(now()) @updatedAt
+  linkFora        String?
+}

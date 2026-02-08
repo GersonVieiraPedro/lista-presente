@@ -52,7 +52,9 @@ export default function DetalhesPresente() {
 
   const gerarPagamentoPix = async () => {
     if (!presente) return
-
+    const csession = sessionStorage.getItem('session')
+      ? JSON.parse(sessionStorage.getItem('session')!)
+      : null
     try {
       const res = await fetch('/api/pagar', {
         method: 'POST',
@@ -60,10 +62,10 @@ export default function DetalhesPresente() {
         body: JSON.stringify({
           valor: totalPagar,
           descricao: `🎁 ${presente.nome}`,
-          ambiente: 'sandbox', // ou 'prod' quando for produção
           external_reference: JSON.stringify({
             id: presente.id,
             quantidade: quantidade,
+            usuarioName: csession?.user?.name || 'Anônimo',
           }), // para referência futura no webhook
         }),
       })
