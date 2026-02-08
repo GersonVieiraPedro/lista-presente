@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: 'Chá de Casa Nova',
   description:
     'Celebre conosco o início de uma nova jornada repleta de amor, risos e memórias compartilhadas.',
+  icons: {
+    icon: '/presente-de-casamento.ico',
+  },
 }
 
 export default function RootLayout({
@@ -28,7 +31,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className={`${playfair.variable} ${montserrat.variable} font-sans`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

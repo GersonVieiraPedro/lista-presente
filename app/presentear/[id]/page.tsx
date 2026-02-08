@@ -86,7 +86,7 @@ export default function DetalhesPresente() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
         <h1 className="text-xl font-bold">Presente não encontrado</h1>
-        <Link href="/" className="mt-4 p-5 text-blue-500 underline">
+        <Link href="/lista" className="mt-4 p-5 text-blue-500 underline">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
