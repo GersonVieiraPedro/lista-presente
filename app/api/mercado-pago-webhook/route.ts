@@ -22,17 +22,26 @@ export async function POST(req: Request) {
       )
     }
 
-    // Função auxiliar para processar pagamentos aprovados
+    // Função auxiliar para processar pagamentos aprovados com external_reference
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function processarPagamentoAprovado(payment: any) {
       if (payment.status !== 'approved') return
 
       if (!payment.external_reference) {
-        console.warn('Pagamento sem external_reference:', payment.id)
+        console.warn(`Pagamento aprovado sem external_reference: ${payment.id}`)
         return
       }
 
-      const ref = JSON.parse(payment.external_reference)
+      let ref
+      try {
+        ref = JSON.parse(payment.external_reference)
+      } catch {
+        console.warn(
+          `External_reference inválido: ${payment.external_reference}`,
+        )
+        return
+      }
+
       const itemId = ref.id
       const quantidade = ref.quantidade ?? 1
 
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
       console.log(`Item ${itemId} atualizado com ${quantidade} cota(s)`)
     }
 
-    // === 1) Notificações de pagamento ===
+    // === 1) Webhook de pagamento ===
     if (body.type === 'payment' && body.data?.id) {
       const paymentId = body.data.id
 
@@ -86,7 +95,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true })
     }
 
-    // === 2) Notificações de merchant_order (ordem de compra) ===
+    // === 2) Webhook de merchant_order ===
     if (body.topic === 'merchant_order' && body.resource) {
       const resOrder = await fetch(body.resource, {
         headers: { Authorization: `Bearer ${token}` },
@@ -99,6 +108,12 @@ export async function POST(req: Request) {
 
       const order = await resOrder.json()
       console.log('Detalhes da ordem:', order)
+
+      if (!order.payments || order.payments.length === 0) {
+        console.log(
+          `Nenhum pagamento aprovado encontrado para a order ${order.id}`,
+        )
+      }
 
       // Processa todos os pagamentos da ordem
       for (const p of order.payments || []) {
