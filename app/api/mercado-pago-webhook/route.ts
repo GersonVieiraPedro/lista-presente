@@ -5,9 +5,24 @@ import { prisma } from '../../lib/prisma'
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
+  const receivedAt = new Date()
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const logEntry: any = {
+    receivedAt,
+    webhookType: null,
+    webhookBody: null,
+    fetchedResource: null,
+    statusProcessed: null,
+    externalReference: null,
+    itemIdsAffected: [],
+    logs: [],
+  }
+
   try {
     const body = await req.json()
     console.log('Webhook Mercado Pago recebido:', body)
+    logEntry.webhookBody = body
+    logEntry.webhookType = body.type || body.topic
 
     // Define token dependendo do ambiente
     const token =
@@ -15,39 +30,31 @@ export async function POST(req: Request) {
         ? process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
         : process.env.MERCADO_PAGO_ACCESS_TOKEN_TESTE
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Token do Mercado Pago não definido' },
-        { status: 500 },
-      )
-    }
+    if (!token) throw new Error('Token do Mercado Pago não definido')
 
-    // Função auxiliar para processar pagamentos aprovados com external_reference
+    // Função auxiliar para processar pagamentos aprovados
     //eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function processarPagamentoAprovado(payment: any) {
-      if (payment.status !== 'approved') return
-
-      if (!payment.external_reference) {
-        console.warn(`Pagamento aprovado sem external_reference: ${payment.id}`)
-        return
-      }
-
-      let ref
-      try {
-        ref = JSON.parse(payment.external_reference)
-      } catch {
-        console.warn(
-          `External_reference inválido: ${payment.external_reference}`,
+      if (payment.status !== 'approved') {
+        logEntry.logs.push(
+          `Pagamento ${payment.id} não aprovado: ${payment.status}`,
         )
         return
       }
 
+      if (!payment.external_reference) {
+        logEntry.logs.push(`Pagamento sem external_reference: ${payment.id}`)
+        return
+      }
+
+      const ref = JSON.parse(payment.external_reference)
+      logEntry.externalReference = ref.id
       const itemId = ref.id
       const quantidade = ref.quantidade ?? 1
 
       const item = await prisma.item.findUnique({ where: { id: itemId } })
       if (!item) {
-        console.warn('Item não encontrado:', itemId)
+        logEntry.logs.push(`Item não encontrado: ${itemId}`)
         return
       }
 
@@ -70,10 +77,12 @@ export async function POST(req: Request) {
         },
       })
 
-      console.log(`Item ${itemId} atualizado com ${quantidade} cota(s)`)
+      logEntry.itemIdsAffected.push(itemId)
+      logEntry.logs.push(`Item ${itemId} atualizado com ${quantidade} cota(s)`)
+      logEntry.statusProcessed = 'approved'
     }
 
-    // === 1) Webhook de pagamento ===
+    // === 1) Notificações de pagamento ===
     if (body.type === 'payment' && body.data?.id) {
       const paymentId = body.data.id
 
@@ -83,51 +92,58 @@ export async function POST(req: Request) {
       )
 
       if (!resPayment.ok) {
-        console.error('Erro ao buscar pagamento:', await resPayment.text())
+        const errorText = await resPayment.text()
+        console.error('Erro ao buscar pagamento:', errorText)
+        logEntry.logs.push(`Erro ao buscar pagamento: ${errorText}`)
+        await prisma.webhookLog.create({ data: logEntry })
         return NextResponse.json({ received: true })
       }
 
       const payment = await resPayment.json()
-      console.log('Detalhes do pagamento:', payment)
+      logEntry.fetchedResource = payment
 
       await processarPagamentoAprovado(payment)
-
+      await prisma.webhookLog.create({ data: logEntry })
       return NextResponse.json({ received: true })
     }
 
-    // === 2) Webhook de merchant_order ===
+    // === 2) Notificações de merchant_order (ordem de compra) ===
     if (body.topic === 'merchant_order' && body.resource) {
       const resOrder = await fetch(body.resource, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
       if (!resOrder.ok) {
-        console.error('Erro ao buscar merchant_order:', await resOrder.text())
+        const errorText = await resOrder.text()
+        console.error('Erro ao buscar merchant_order:', errorText)
+        logEntry.logs.push(`Erro ao buscar merchant_order: ${errorText}`)
+        await prisma.webhookLog.create({ data: logEntry })
         return NextResponse.json({ received: true })
       }
 
       const order = await resOrder.json()
+      logEntry.fetchedResource = order
       console.log('Detalhes da ordem:', order)
-
-      if (!order.payments || order.payments.length === 0) {
-        console.log(
-          `Nenhum pagamento aprovado encontrado para a order ${order.id}`,
-        )
-      }
 
       // Processa todos os pagamentos da ordem
       for (const p of order.payments || []) {
         await processarPagamentoAprovado(p)
       }
 
+      await prisma.webhookLog.create({ data: logEntry })
       return NextResponse.json({ received: true })
     }
 
     // Tipo de webhook não tratado
-    console.log('Tipo de webhook não tratado:', body.type || body.topic)
+    logEntry.logs.push(
+      `Tipo de webhook não tratado: ${body.type || body.topic}`,
+    )
+    await prisma.webhookLog.create({ data: logEntry })
     return NextResponse.json({ received: true })
   } catch (err) {
     console.error('Erro no webhook:', err)
+    logEntry.logs.push(`Erro interno: ${String(err)}`)
+    await prisma.webhookLog.create({ data: logEntry })
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

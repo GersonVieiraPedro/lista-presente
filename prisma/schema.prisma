@@ -74,3 +74,14 @@ model Presenca {
   atualizadoEm     DateTime @default(now()) @updatedAt
 }
 
+model WebhookLog {
+  id                String   @id @default(cuid())
+  receivedAt        DateTime
+  webhookType       String?
+  webhookBody       Json
+  fetchedResource   Json?
+  statusProcessed   String?
+  externalReference String?
+  itemIdsAffected   String[]  @default([])
+  logs              String[]
+}
