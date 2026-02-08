@@ -1,4 +1,3 @@
-// app/api/mercado-pago-webhook/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '../../lib/prisma'
 
@@ -9,11 +8,8 @@ export async function POST(req: Request) {
     const body = await req.json()
     console.log('Webhook Mercado Pago recebido:', body)
 
-    // Normalmente o evento é payment.updated
     if (body.type === 'payment') {
       const paymentId = body.data.id
-
-      // Consulta o pagamento na API do Mercado Pago (recomendado)
       const token = process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
       const res = await fetch(
         `https://api.mercadopago.com/v1/payments/${paymentId}`,
@@ -24,25 +20,61 @@ export async function POST(req: Request) {
       const payment = await res.json()
       console.log('Detalhes do pagamento:', payment)
 
-      // Verifica se o pagamento foi aprovado
       if (payment.status === 'approved') {
-        // Atualiza o item correspondente no banco
-        // Aqui consideramos que payment.external_reference = listaId ou itemId
-        const itemId = payment.external_reference
+        const ref = JSON.parse(payment.external_reference)
+        const itemId = ref.id
+        const quantidade = ref.quantidade ?? 1
 
-        const updated = await prisma.item.updateMany({
-          where: {
-            id: itemId,
-            reservado: false, // evita sobrescrever se já reservado
-          },
-          data: {
-            reservado: true,
-            reservadoPor: payment.payer?.email ?? 'desconhecido',
-            reservadoEm: new Date(),
-          },
+        const select = await prisma.item.findUnique({
+          where: { id: itemId },
         })
 
-        console.log('Itens atualizados:', updated.count)
+        if (!select) {
+          console.warn('Item not found:', itemId)
+          return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+        }
+
+        const temCotas = select?.cotas ? select?.cotas : 0
+
+        if (
+          select.reservado === false &&
+          temCotas > 0 &&
+          temCotas - select.cotasReservadas != 0 &&
+          temCotas - select.cotasReservadas >= quantidade
+        ) {
+          console.warn('Reservado presente com contas:', ref)
+
+          const reservadoPorAtual = select.reservadoPor
+            ? [...select.reservadoPor.split(','), payment.payer?.name].join(
+                ', ',
+              )
+            : (payment.payer?.name ?? 'desconhecido')
+
+          const updated = await prisma.item.updateMany({
+            where: { id: itemId },
+            data: {
+              reservado: true,
+              cotasReservadas: { increment: quantidade },
+              reservadoPor: reservadoPorAtual ?? 'desconhecido',
+              reservadoEm: new Date(),
+            },
+          })
+
+          console.log('Itens atualizados:', updated.count)
+        } else {
+          console.log(
+            'Não foi possível reservar o item. Verifique as cotas disponíveis.',
+            ref,
+          )
+          const updated = await prisma.item.updateMany({
+            where: { id: itemId },
+            data: {
+              reservado: true,
+              reservadoPor: payment.payer?.name ?? 'desconhecido',
+              reservadoEm: new Date(),
+            },
+          })
+        }
       }
     }
 
