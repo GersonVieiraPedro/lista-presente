@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         { status: 500 },
       )
     }
-    const notificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/app/api/mercado-pago-webhook`
+    const notificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/mercado-pago-webhook`
 
     console.log('Notification URL:', notificationUrl)
 
