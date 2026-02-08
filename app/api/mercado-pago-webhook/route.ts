@@ -51,6 +51,10 @@ export async function POST(req: Request) {
       logEntry.externalReference = ref.id
       const itemId = ref.id
       const quantidade = ref.quantidade ?? 1
+      const usuarioName = ref.usuarioName ?? 'desconhecido'
+      console.log(
+        `Processando pagamento aprovado para item ${itemId}, quantidade ${quantidade}, usuário ${usuarioName}`,
+      )
 
       const item = await prisma.item.findUnique({ where: { id: itemId } })
       if (!item) {
@@ -59,11 +63,8 @@ export async function POST(req: Request) {
       }
 
       const reservadoPorAtual = item.reservadoPor
-        ? [
-            ...item.reservadoPor.split(','),
-            payment.external_reference?.usuarioName,
-          ].join(', ')
-        : (payment.external_reference?.usuarioName ?? 'desconhecido')
+        ? [...item.reservadoPor.split(','), usuarioName].join(', ')
+        : usuarioName
 
       const cotasDisponiveis = (item.cotas ?? 1) - (item.cotasReservadas ?? 0)
 
