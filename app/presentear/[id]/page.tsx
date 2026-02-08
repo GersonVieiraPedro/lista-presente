@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Cookies from 'js-cookie'
 
 interface Item {
   id: string
@@ -50,11 +51,16 @@ export default function DetalhesPresente() {
     fetchPresente()
   }, [id])
 
+  const csession = Cookies.get('session')
+    ? JSON.parse(Cookies.get('session')!)
+    : null
+
+  console.log('Sessão do usuário:', csession)
+  console.log('Nome do usuário:', csession?.user?.name)
+
   const gerarPagamentoPix = async () => {
     if (!presente) return
-    const csession = sessionStorage.getItem('session')
-      ? JSON.parse(sessionStorage.getItem('session')!)
-      : null
+
     try {
       const res = await fetch('/api/pagar', {
         method: 'POST',

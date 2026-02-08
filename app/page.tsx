@@ -1,4 +1,5 @@
 'use client'
+import Cookies from 'js-cookie'
 
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -82,6 +83,12 @@ export default function AreaLogada() {
       }
     }
     verificarPresenca()
+    if (session?.user) {
+      // Salva a sessão no cookie para uso posterior
+      Cookies.set('session', JSON.stringify(session), { expires: 1 }) // expira em 1 dia
+    } else {
+      Cookies.remove('session')
+    }
   }, [session])
 
   if (status === 'loading') {
@@ -124,7 +131,6 @@ export default function AreaLogada() {
   )
 
   if (!session) {
-    sessionStorage.setItem('session', JSON.stringify(session))
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 px-4">
         <div className="flex w-full max-w-sm flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-lg">
@@ -246,7 +252,6 @@ export default function AreaLogada() {
         <button
           onClick={() => {
             signOut()
-            sessionStorage.removeItem('session')
           }}
           className="mt-4 w-full text-center text-xs text-gray-400 underline"
         >
