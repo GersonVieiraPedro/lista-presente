@@ -2,10 +2,10 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '../../lib/prisma'
-import { Prisma } from '@prisma/client'
 import * as XLSX from 'xlsx'
 import fs from 'fs'
 import path from 'path'
+import { Prisma } from '@prisma/client'
 
 interface ExcelRow {
   nome: string
