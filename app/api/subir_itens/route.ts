@@ -5,7 +5,7 @@ import { prisma } from '../../lib/prisma'
 import * as XLSX from 'xlsx'
 import fs from 'fs'
 import path from 'path'
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 interface ExcelRow {
   nome: string
@@ -26,27 +26,22 @@ export async function POST() {
     const fileBuffer = fs.readFileSync(filePath)
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    //
+
     const rows = XLSX.utils.sheet_to_json<ExcelRow>(sheet)
 
     const itens = rows
       .map((row) => {
-        if (!row.nome || row.preco === undefined || row.preco === null) {
+        if (!row.nome || row.preco === undefined || row.preco === null)
           return null
-        }
 
         let preco: number
-
-        // 👉 se já for número, usa direto
         if (typeof row.preco === 'number') {
           preco = row.preco
         } else {
-          // 👉 se for string, só troca vírgula por ponto
           const normalizado = String(row.preco)
             .replace('R$', '')
             .replace(',', '.')
             .trim()
-
           preco = Number(normalizado)
         }
 
@@ -54,13 +49,13 @@ export async function POST() {
 
         return {
           listaId,
-          nome: String(row.nome ?? ''),
+          nome: String(row.nome),
           categoria: String(row.categoria ?? ''),
           descricao: String(row.descricao ?? ''),
           imagemUrl: String(row.imagemUrl ?? ''),
           prioridade: String(row.prioridade ?? 'media'),
           quantidade: Number(row.quantidade ?? 1),
-          preco, // ✅ agora correto
+          preco,
           cotas: 0,
           cotasReservadas: 0,
           cotasValor: 0,
