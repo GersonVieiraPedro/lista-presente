@@ -17,7 +17,7 @@ export default function InfoCotas() {
         />
 
         {/* título */}
-        <span className="text-xl font-semibold tracking-tight text-gray-700">
+        <span className="text-md font-semibold tracking-tight text-gray-700">
           Presente dividido em cotas
         </span>
 
@@ -48,13 +48,13 @@ export default function InfoCotas() {
           open ? 'mt-4 max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div className="space-y-2 leading-relaxed">
-          <p>
+        <div className="space-y-2 text-sm leading-relaxed">
+          <p className="text-sm text-gray-700">
             Presentes com este símbolo podem ser divididos em cotas, permitindo
             que o valor seja compartilhado.
           </p>
 
-          <p>
+          <p className="text-sm text-gray-700">
             Assim, várias pessoas podem contribuir juntas, sem que o custo fique
             pesado para apenas uma.
           </p>

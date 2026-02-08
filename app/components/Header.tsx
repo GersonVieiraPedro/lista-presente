@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import MusicaPagina from './playerMusica'
 
 const fotos = [
   '/fotos/1.jpeg',
   '/fotos/2.jpeg',
   '/fotos/3.jpeg',
   '/fotos/4.jpeg',
-  '/fotos/5.jpeg',
+  '/fotos/5.jpg',
   '/fotos/6.jpeg',
   '/fotos/7.jpeg',
   '/fotos/8.jpeg',
+  '/fotos/9.jpg',
+  '/fotos/10.jpg',
+  '/fotos/11.jpg',
+  '/fotos/12.jpg',
+  '/fotos/13.jpg',
+  '/fotos/14.jpg',
+  '/fotos/15.jpg',
+  '/fotos/17.jpg',
+  '/fotos/18.jpg',
 ]
 
 export function Header() {
@@ -19,7 +29,7 @@ export function Header() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFotoAtiva((prev) => (prev + 1) % fotos.length)
-    }, 4000)
+    }, 3000)
     return () => clearInterval(interval)
   }, [])
 
@@ -39,6 +49,9 @@ export function Header() {
           />
         ))}
         <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute top-4 right-4 z-10">
+          <MusicaPagina />
+        </div>
       </div>
 
       {/* Conteúdo */}

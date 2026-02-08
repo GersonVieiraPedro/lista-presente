@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Presente } from '../type'
+import ItemReservado from './botaoReservado'
 
 type Props = Presente
 
@@ -52,19 +53,11 @@ export function CardPresente(props: Props) {
               : ''}
           </p>
         </div>
-
-        {reservado ? (
-          <span className="inline-block w-full rounded-xl bg-zinc-200 px-3 py-2 text-center text-sm text-zinc-700">
-            Reservado{reservadoPor ? ` por ${reservadoPor} 🫶🏼` : ''}
-          </span>
-        ) : (
-          <Link
-            href={`/presentear/${id}`}
-            className="mt-2 block w-full rounded-xl bg-zinc-700 py-2 text-center text-sm font-medium text-white transition hover:bg-zinc-800"
-          >
-            Quero presentear
-          </Link>
-        )}
+        <ItemReservado
+          id={id}
+          reservado={reservado}
+          reservadoPor={reservadoPor}
+        />
       </div>
     </div>
   )

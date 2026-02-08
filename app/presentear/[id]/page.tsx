@@ -67,7 +67,7 @@ export default function DetalhesPresente() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           valor: totalPagar,
-          descricao: `🎁 ${presente.nome}`,
+          descricao: `🎁 ${presente.nome} `,
           external_reference: JSON.stringify({
             id: presente.id,
             quantidade: quantidade,
@@ -128,7 +128,7 @@ export default function DetalhesPresente() {
       <div className="mx-auto max-w-5xl px-6 py-10 md:py-20">
         {/* Botão Voltar */}
         <Link
-          href="/"
+          href="/lista"
           className="group mb-8 inline-flex items-center gap-2 rounded-full px-4 py-2 text-zinc-500 transition hover:bg-gray-200 hover:text-zinc-900"
         >
           <svg
