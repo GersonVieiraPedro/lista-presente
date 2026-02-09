@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import UserFloatingMenu from './UserFloatingMenu'
 
 export default function PainelFiltros({
   busca,
@@ -21,19 +22,20 @@ export default function PainelFiltros({
       }}
       className="sticky top-0 z-20 flex justify-center gap-2 bg-zinc-700 p-2 text-gray-700 shadow-xl"
     >
+      <div></div>
       <input
         type="search"
         placeholder="Buscar presente ou categoria"
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
-        className="h-14 w-[80%] rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-400 focus:outline-none"
+        className="h-10 w-[80%] rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-zinc-400 focus:outline-none"
       />
 
       <div className="relative">
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex w-full items-center justify-between rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-400 focus:outline-none"
+          className="flex h-10 w-full items-center justify-between rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm focus:ring-2 focus:ring-zinc-400 focus:outline-none"
         >
           <div className="flex h-8 items-center gap-2 p-2 text-zinc-700">
             <span className="flex size-5 items-center justify-center text-zinc-700">
@@ -153,6 +155,7 @@ export default function PainelFiltros({
           </ul>
         )}
       </div>
+      <UserFloatingMenu />
     </div>
   )
 }

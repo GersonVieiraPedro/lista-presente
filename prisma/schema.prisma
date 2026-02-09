@@ -66,6 +66,9 @@ model Presenca {
   tipo             String
   acompanhante     Boolean
   responsavelEmail String
+  convidadoPresente Boolean  
+  motivoAusencia   String?
+  mensagem         String?
 
   usuarioId        String?
   usuario          Usuario? @relation(fields: [usuarioId], references: [id])

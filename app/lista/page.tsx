@@ -70,7 +70,7 @@ export default function Home() {
         setOrdenacao={setOrdenacao}
       />
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="mx-auto max-w-6xl px-4 py-14">
         <InfoCotas />
         <h2 className="font-title mb-8 text-center text-3xl font-semibold text-zinc-800">
           Lista de Presentes

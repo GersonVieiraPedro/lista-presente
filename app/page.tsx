@@ -2,7 +2,7 @@
 import Cookies from 'js-cookie'
 
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AcompanhanteInput } from './components/inputsAcompanhantes'
 import { Session } from 'next-auth'
 import Link from 'next/link'
@@ -23,6 +23,7 @@ type UsuarioData = {
     id: string
     nome: string
     tipo: string
+    convidadoPresente: boolean
   }[]
 }
 
@@ -32,11 +33,32 @@ export default function AreaLogada() {
   const { data: session, status } = useSession()
 
   const [acompanhantes, setAcompanhantes] = useState<Acompanhante[]>([
-    { id: crypto.randomUUID(), nome: '', tipo: '' },
+    { id: '', nome: '', tipo: '' },
   ])
 
   const [showModal, setShowModal] = useState(false)
   const [usuarioData, setUsuarioData] = useState<UsuarioData | null>(null)
+
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  const [tooltipOpen, setTooltipOpen] = useState(false)
+  const [confirmou, setConfirmou] = useState<boolean | null>(null)
+  const [exibirAcompanhantes, setExibirAcompanhantes] = useState(false)
+  const [motivoAusencia, setMotivoAusencia] = useState('')
+  const [mensagemAusencia, setMensagemAusencia] = useState('')
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        tooltipRef.current &&
+        !tooltipRef.current.contains(event.target as Node)
+      ) {
+        setTooltipOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (!session?.user) return
@@ -83,7 +105,9 @@ export default function AreaLogada() {
         criarUsuario()
       }
     }
+
     verificarPresenca()
+
     if (session?.user) {
       // Salva a sessão no cookie para uso posterior
       Cookies.set('session', JSON.stringify(session), { expires: 1 }) // expira em 1 dia
@@ -112,11 +136,11 @@ export default function AreaLogada() {
 
   function adicionarAcompanhante() {
     if (acompanhantes.length >= MAX_ACOMPANHANTES) return
-
-    setAcompanhantes((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), nome: '', tipo: '' },
-    ])
+    const id =
+      acompanhantes.length > 0
+        ? String(Number(acompanhantes[acompanhantes.length - 1].id) + 1)
+        : '1'
+    setAcompanhantes((prev) => [...prev, { id: id, nome: '', tipo: '' }])
   }
 
   function removerAcompanhante(id: string) {
@@ -154,6 +178,9 @@ export default function AreaLogada() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           acompanhantes: acompanhantesPreenchidos,
+          confirmou,
+          motivoAusencia,
+          mensagemAusencia,
         }),
       })
 
@@ -230,10 +257,25 @@ export default function AreaLogada() {
             <h1 className="mb-4 text-center text-xl font-semibold">
               Presença já Confirmada! 🎉
             </h1>
-            <p className="mb-6 text-center text-sm">
-              Agradecemos por confirmar sua presença! Estamos ansiosos para
-              celebrar juntos.
-            </p>
+            {usuarioData?.presencas.find((p) => p.convidadoPresente) ? (
+              <p className="mb-6 text-center text-sm">
+                Agradecemos por confirmar sua presença! Estamos ansiosos para
+                celebrar juntos.
+              </p>
+            ) : (
+              <>
+                <p className="mb-6 text-center text-sm">
+                  Lamentamos que você não possa comparecer 😢
+                </p>
+                <p className="mb-6 text-center text-sm">
+                  Mas ainda assim, sinta-se à vontade para presentear o casal!
+                  🎁
+                </p>
+              </>
+            )}
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Convidados confirmados:
+            </label>
             <ul className="space-y-2 rounded-lg bg-gray-100 p-4 text-center text-sm text-gray-700">
               {usuarioData?.presencas.length > 0
                 ? usuarioData.presencas.map((a) => (
@@ -254,38 +296,136 @@ export default function AreaLogada() {
           </>
         ) : (
           <>
-            <div className="space-y-3">
-              <label className="block text-sm font-medium">Acompanhantes</label>
-
-              {acompanhantes.map((acompanhante) => (
-                <AcompanhanteInput
-                  key={acompanhante.id}
-                  acompanhante={acompanhante}
-                  onChange={atualizarAcompanhante}
-                  onRemove={removerAcompanhante}
-                  canRemove={acompanhantes.length > 1}
-                />
-              ))}
-
-              {acompanhantes.length < MAX_ACOMPANHANTES && (
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Você vai comparecer ao evento?{' '}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
                 <button
-                  onClick={adicionarAcompanhante}
-                  className="w-full rounded-xl border border-dashed py-2 text-sm text-gray-500 transition hover:bg-gray-50"
+                  onClick={() =>
+                    confirmou === true ? setConfirmou(null) : setConfirmou(true)
+                  }
+                  className={`w-[50%] cursor-pointer rounded-xl bg-gray-200 p-2 transition hover:bg-gray-300 ${confirmou === true ? 'bg-green-500 font-bold text-white hover:bg-green-600' : ''}`}
+                  type="button"
                 >
-                  + Adicionar mais um acompanhante
+                  Sim
                 </button>
-              )}
+                <button
+                  onClick={() => {
+                    if (confirmou === false) {
+                      setConfirmou(null)
+                    } else {
+                      setConfirmou(false)
+                      setExibirAcompanhantes(false)
+                      setAcompanhantes([{ id: '1', nome: '', tipo: '' }])
+                    }
+                  }}
+                  className={`w-[50%] cursor-pointer rounded-xl bg-gray-200 p-2 transition hover:bg-gray-300 ${confirmou === false ? 'bg-red-500 font-bold text-white hover:bg-red-600' : ''}`}
+                  type="button"
+                >
+                  Não
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="relative flex items-center gap-2 text-center">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Acompanhantes
+                </label>
 
-              {acompanhantes.length === MAX_ACOMPANHANTES && (
-                <p className="text-center text-xs text-gray-400">
-                  Limite máximo de 5 acompanhantes
-                </p>
-              )}
+                <div className="relative inline-block">
+                  <button
+                    type="button"
+                    onClick={() => setTooltipOpen((v) => !v)}
+                    onMouseEnter={() => setTooltipOpen(true)}
+                    onMouseLeave={() => setTooltipOpen(false)}
+                    className="cursor-pointer rounded-full p-1 text-gray-500 transition hover:bg-black/60 hover:text-gray-100"
+                    aria-label="Informações sobre acompanhantes"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
+                    </svg>
+                  </button>
+
+                  {tooltipOpen && (
+                    <div
+                      ref={tooltipRef}
+                      className="absolute top-0 left-7 z-50 w-80 rounded-xl bg-black/60 p-3 text-xs text-white shadow-lg"
+                    >
+                      <p className="text-md mb-2 font-semibold">
+                        Convidado Não Convida!
+                      </p>
+                      <p>
+                        Adicione apenas os acompanhantes que foram devidamente
+                        convidados.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div
+                  onClick={() => {
+                    if (confirmou === true) {
+                      setExibirAcompanhantes(!exibirAcompanhantes)
+                    } else {
+                      alert(
+                        '⚠️ Confirme sua presença para adicionar acompanhantes !',
+                      )
+                    }
+                  }}
+                  className={`${exibirAcompanhantes ? 'rotate-180 bg-gray-200 text-gray-400' : 'text-gray-700'} absolute -top-1 right-0 cursor-pointer rounded-xl bg-gray-100 p-2 transition hover:bg-gray-200 hover:text-gray-600`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                  >
+                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              {exibirAcompanhantes &&
+                acompanhantes.map((acompanhante) => (
+                  <AcompanhanteInput
+                    key={acompanhante.id}
+                    acompanhante={acompanhante}
+                    onChange={atualizarAcompanhante}
+                    onRemove={removerAcompanhante}
+                    canRemove={acompanhantes.length > 1}
+                  />
+                ))}
+
+              {exibirAcompanhantes &&
+                acompanhantes.length < MAX_ACOMPANHANTES && (
+                  <button
+                    onClick={adicionarAcompanhante}
+                    className="w-full rounded-xl border border-dashed py-2 text-sm text-gray-500 transition hover:bg-gray-50"
+                  >
+                    + Adicionar mais um acompanhante
+                  </button>
+                )}
+
+              {exibirAcompanhantes &&
+                acompanhantes.length === MAX_ACOMPANHANTES && (
+                  <p className="text-center text-xs text-gray-400">
+                    Limite máximo de 5 acompanhantes
+                  </p>
+                )}
             </div>
             <button
               onClick={() => setShowModal(true)}
-              disabled={acompanhantesInvalidos}
-              className="mt-6 w-full rounded-xl bg-black py-3 text-sm font-medium text-white transition disabled:opacity-50"
+              disabled={acompanhantesInvalidos || confirmou === null}
+              className="mt-6 w-full cursor-pointer rounded-xl bg-black py-3 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700"
             >
               Confirmar presença
             </button>
@@ -295,7 +435,7 @@ export default function AreaLogada() {
           onClick={() => {
             signOut()
           }}
-          className="mt-4 w-full text-center text-xs text-gray-400 underline"
+          className="scale mt-4 w-full text-center text-xs text-gray-400 underline transition hover:scale-110 hover:text-gray-600"
         >
           Sair
         </button>
@@ -310,45 +450,91 @@ export default function AreaLogada() {
             </h3>
 
             <p className="mb-4 text-sm text-gray-600">
-              Esta confirmação é <strong>oficial</strong> e envolve reserva de
-              buffet e organização do evento.
+              <strong> Esta confirmação é oficial</strong> e envolve reserva de
+              buffet, mesa e organização do evento.
             </p>
+            {confirmou === false && (
+              <div>
+                <p className="mb-4 text-sm">
+                  Lamentamos que você não possa comparecer, mas agradecemos por
+                  avisar com antecedência! 😢
+                </p>
 
-            <div className="mb-6 rounded-xl bg-gray-50 p-4 text-left text-sm">
-              <p className="mb-2 font-medium text-gray-700">Acompanhantes:</p>
+                <select
+                  className="mb-2 w-full rounded-xl bg-gray-100 p-2 text-sm"
+                  name="motivoAusencia"
+                  id="motivoAusencia"
+                  onChange={(e) => setMotivoAusencia(e.target.value)}
+                >
+                  <option value="">Selecione um motivo de ausência</option>
+                  <option value="compromisso">Compromisso na mesma data</option>
+                  <option value="saude">Motivos de saúde</option>
+                  <option value="trabalho">Trabalho</option>
+                  <option value="distancia">Distância</option>
+                  <option value="viagem">Viagem</option>
+                  <option value="outro">Outro</option>
+                </select>
 
-              {acompanhantesPreenchidos.length === 0 ? (
-                <p className="text-gray-500">Nenhum acompanhante</p>
-              ) : (
-                <ul className="space-y-2">
-                  {acompanhantesPreenchidos.map((a, index) => (
-                    <li
-                      key={a.id}
-                      className="flex justify-between rounded-lg bg-white px-3 py-2 shadow-sm"
-                    >
-                      <span className="font-medium text-gray-800">
-                        {index + 1}. {a.nome}
-                      </span>
-                      <span className="text-xs text-gray-500">{a.tipo}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                <textarea
+                  placeholder="Deixe uma mensagem para o casal"
+                  className="mb-5 w-full rounded-xl border border-gray-300 p-2 text-sm"
+                  name="mensagemAusencia"
+                  id="mensagemAusencia"
+                  onChange={(e) => setMensagemAusencia(e.target.value)}
+                ></textarea>
+              </div>
+            )}
+
+            {confirmou === true && (
+              <div className="text-sm">
+                <p className="mb-4 text-sm">
+                  Estamos super felizes que você vai comparecer! 🎉
+                </p>
+
+                <div className="mb-6 rounded-xl bg-gray-50 p-4 text-left text-sm">
+                  <p className="mb-2 font-medium text-gray-700">
+                    Acompanhantes:
+                  </p>
+
+                  {acompanhantesPreenchidos.length === 0 ? (
+                    <p className="text-gray-500">Nenhum acompanhante</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {acompanhantesPreenchidos.map((a, index) => (
+                        <li
+                          key={index}
+                          className="flex justify-between rounded-lg bg-white px-3 py-2 shadow-sm"
+                        >
+                          <span className="font-medium text-gray-800">
+                            {index + 1}. {a.nome}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {a.tipo}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
+              <button
+                onClick={confirmarPresenca}
+                className="w-1/2 cursor-pointer rounded-xl bg-black py-2 text-sm text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-700"
+                disabled={
+                  confirmou === false &&
+                  (motivoAusencia === '' || mensagemAusencia.trim() === '')
+                }
+              >
+                Confirmar
+              </button>
               <button
                 onClick={() => setShowModal(false)}
                 className="w-1/2 cursor-pointer rounded-xl border bg-gray-100 py-2 text-sm transition hover:bg-gray-200"
               >
                 Voltar
-              </button>
-
-              <button
-                onClick={confirmarPresenca}
-                className="w-1/2 cursor-pointer rounded-xl bg-black py-2 text-sm text-white transition hover:bg-gray-700"
-              >
-                Confirmar
               </button>
             </div>
           </div>

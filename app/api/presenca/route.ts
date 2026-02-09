@@ -19,6 +19,12 @@ export async function POST(req: Request) {
       acompanhantes: { nome: string; tipo: string }[]
     }
 
+    const { confirmou, motivoAusencia, mensagemAusencia } = body as {
+      confirmou: boolean
+      motivoAusencia?: string
+      mensagemAusencia?: string
+    }
+
     // garante usuário no banco
     const usuario = await prisma.usuario.upsert({
       where: { email: session.user.email },
@@ -41,11 +47,14 @@ export async function POST(req: Request) {
         acompanhante: false,
         responsavelEmail: usuario.email,
         usuarioId: usuario.id,
+        convidadoPresente: confirmou,
+        motivoAusencia: motivoAusencia || null,
+        mensagem: mensagemAusencia || null,
       },
     })
 
-    // 🔹 acompanhantes
-    if (acompanhantes?.length > 0) {
+    // Só salva acompanhantes se confirmou presença e tiver acompanhantes preenchidos (evita criar registros de acompanhantes para quem não vai)
+    if (acompanhantes?.length > 0 && confirmou === true) {
       await prisma.presenca.createMany({
         data: acompanhantes.map((a) => ({
           nome: a.nome,
@@ -53,6 +62,9 @@ export async function POST(req: Request) {
           acompanhante: true,
           responsavelEmail: usuario.email,
           usuarioId: usuario.id,
+          convidadoPresente: confirmou,
+          motivoAusencia: null,
+          mensagem: null,
         })),
       })
     }
