@@ -15,6 +15,7 @@ interface Item {
   descricao?: string
   imagemUrl: string
   reservado?: boolean
+  linkFora?: string
 }
 
 export default function DetalhesPresente() {
@@ -129,7 +130,7 @@ export default function DetalhesPresente() {
   const totalPagar = valorCota * quantidade
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-100">
       <div className="mx-auto max-w-5xl px-6 py-10 md:py-20">
         {/* Botão Voltar */}
         <Link
@@ -186,7 +187,7 @@ export default function DetalhesPresente() {
             </div>
 
             {presente.cotas && presente.cotas > 1 && (
-              <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-6">
+              <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-zinc-900">
                     Presentear com cotas
@@ -210,7 +211,7 @@ export default function DetalhesPresente() {
                   <div className="flex items-center overflow-hidden rounded-xl border border-zinc-300 text-zinc-700">
                     <button
                       onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                      className="border-r border-zinc-300 bg-white px-4 py-2 transition hover:bg-zinc-100"
+                      className="border-r border-zinc-300 bg-zinc-50 px-4 py-2 transition hover:bg-zinc-100"
                     >
                       -
                     </button>
@@ -225,7 +226,7 @@ export default function DetalhesPresente() {
                           Math.min(cotasDisponiveis, quantidade + 1),
                         )
                       }
-                      className="border-l border-zinc-300 bg-white px-4 py-2 transition hover:bg-zinc-100"
+                      className="transform animate-pulse border-l border-zinc-300 bg-zinc-100 px-4 py-2 transition hover:bg-zinc-100"
                     >
                       +
                     </button>
@@ -243,18 +244,48 @@ export default function DetalhesPresente() {
 
             <Link
               onClick={gerarPagamentoPix}
-              href={``}
-              className="flex w-full flex-col items-center rounded-2xl bg-zinc-900 py-4 font-bold text-white shadow-lg transition hover:bg-zinc-800"
+              href=""
+              className="flex w-full animate-pulse flex-col items-center rounded-2xl bg-zinc-900 py-4 font-bold text-white shadow-lg transition hover:bg-zinc-800"
             >
               {presente.cotas && presente.cotas > 1 ? (
                 <span>
-                  Contribuir com {quantidade}{' '}
+                  🎁 Presentear com {quantidade}{' '}
                   {quantidade > 1 ? 'cotas' : 'cota'}
                 </span>
               ) : (
-                <span>Presentear</span>
+                <span>🎁 Presentear</span>
               )}
             </Link>
+            <a
+              className="flex w-full items-center justify-center text-center text-gray-600"
+              href={presente.linkFora}
+            >
+              Mais informações do presente (Site Externo)
+            </a>
+            <div className="w-full space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-center gap-2">
+                <img
+                  src="/mercado_pago_color.png"
+                  alt="Mercado Pago"
+                  className="h-14 object-contain"
+                />
+                <span className="text-[16px] font-medium text-zinc-700">
+                  Pagamento processado pelo Mercado Pago
+                </span>
+              </div>
+
+              <p className="text-center text-xs leading-relaxed text-zinc-500">
+                Ao prosseguir, você será redirecionado para o ambiente seguro do
+                Mercado Pago, onde poderá escolher a forma de pagamento
+                desejada, como PIX ou cartão de crédito.
+              </p>
+
+              <div className="flex items-center justify-center gap-6 text-xs text-zinc-500">
+                <span>🔒 Ambiente seguro</span>
+                <span>💳 Cartão de crédito</span>
+                <span>⚡ PIX instantâneo</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -20,7 +20,7 @@
 # production
 /build
 *.xlsx
-
+*.sql
 # Ignorar rota de upload de itens Excel
 /app/api/subir_itens/*
 
