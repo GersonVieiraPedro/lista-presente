@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/mercado-pago-webhook/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '../../lib/prisma'
@@ -6,7 +7,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   const receivedAt = new Date()
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const logEntry: any = {
     receivedAt,
     webhookType: null,
@@ -20,11 +21,9 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    console.log('Webhook Mercado Pago recebido:', body)
     logEntry.webhookBody = body
     logEntry.webhookType = body.type || body.topic
 
-    // Define token dependendo do ambiente
     const token =
       process.env.AMBIENTE === 'prod'
         ? process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD
@@ -32,104 +31,165 @@ export async function POST(req: Request) {
 
     if (!token) throw new Error('Token do Mercado Pago não definido')
 
-    // Função auxiliar para processar pagamentos aprovados
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // ============================
+    // PROCESSAMENTO PRINCIPAL
+    // ============================
     async function processarPagamentoAprovado(payment: any) {
       if (payment.status !== 'approved') {
         logEntry.logs.push(
-          `Pagamento ${payment.id} não aprovado: ${payment.status}`,
+          `Pagamento ${payment.id} ignorado (${payment.status})`,
         )
         return
       }
 
-      if (!payment.external_reference) {
-        logEntry.logs.push(`Pagamento sem external_reference: ${payment.id}`)
+      // 🔒 IDMPOTÊNCIA
+      const jaProcessado = await prisma.pagamentoProcessado.findUnique({
+        where: { paymentId: String(payment.id) },
+      })
+
+      if (jaProcessado) {
+        logEntry.logs.push(`Pagamento ${payment.id} já processado`)
         return
       }
 
-      const ref = JSON.parse(payment.external_reference)
-      logEntry.externalReference = ref.id
+      if (!payment.external_reference) {
+        logEntry.logs.push(`Pagamento ${payment.id} sem external_reference`)
+        return
+      }
+      //https://typescript-eslint.io/rules/no-explicit-any
+      let ref: any
+      try {
+        ref = JSON.parse(payment.external_reference)
+      } catch {
+        logEntry.logs.push(`external_reference inválido`)
+        return
+      }
+
       const itemId = ref.id
       const quantidade = ref.quantidade ?? 1
       const usuarioName = ref.usuarioName ?? 'desconhecido'
-      console.log(
-        `Processando pagamento aprovado para item ${itemId}, quantidade ${quantidade}, usuário ${usuarioName}`,
-      )
 
-      const item = await prisma.item.findUnique({ where: { id: itemId } })
-      if (!item) {
-        logEntry.logs.push(`Item não encontrado: ${itemId}`)
-        return
-      }
+      logEntry.externalReference = itemId
 
-      const reservadoPorAtual = item.reservadoPor
-        ? [...item.reservadoPor.split(','), usuarioName].join(', ')
-        : usuarioName
+      // ============================
+      // TRANSACTION (ANTI-CONCORRÊNCIA)
+      // ============================
+      await prisma.$transaction(async (tx) => {
+        const item = await tx.item.findUnique({
+          where: { id: itemId },
+        })
 
-      const cotasDisponiveis = (item.cotas ?? 1) - (item.cotasReservadas ?? 0)
+        if (!item) {
+          logEntry.logs.push(`Item não encontrado: ${itemId}`)
+          return
+        }
 
-      await prisma.item.update({
-        where: { id: itemId },
-        data: {
-          cotasReservadas:
-            cotasDisponiveis >= quantidade
-              ? { increment: quantidade }
-              : { increment: cotasDisponiveis },
-          reservado: cotasDisponiveis <= quantidade,
-          reservadoPor: reservadoPorAtual,
-          reservadoEm: new Date(),
-        },
+        const reservadoPorAtual = item.reservadoPor
+          ? `${item.reservadoPor}, ${usuarioName}`
+          : usuarioName
+
+        const isItemPorCota = item.cotas !== null && item.cotas > 1
+
+        // ============================
+        // 🟦 ITEM POR COTAS
+        // ============================
+        if (isItemPorCota) {
+          const cotasTotais = item.cotas ?? 0
+          const cotasReservadas = item.cotasReservadas ?? 0
+          const cotasDisponiveis = cotasTotais - cotasReservadas
+
+          if (cotasDisponiveis <= 0) {
+            logEntry.logs.push(`Item ${item.nome} já totalmente reservado`)
+            return
+          }
+
+          const cotasParaReservar = Math.min(quantidade, cotasDisponiveis)
+
+          await tx.item.update({
+            where: { id: itemId },
+            data: {
+              cotasReservadas: { increment: cotasParaReservar },
+              reservado: cotasDisponiveis - cotasParaReservar === 0,
+              reservadoPor: reservadoPorAtual,
+              reservadoEm: new Date(),
+            },
+          })
+
+          logEntry.logs.push(
+            `Item por cotas: ${item.nome} | ${cotasParaReservar}/${cotasTotais}`,
+          )
+        }
+
+        // ============================
+        // 🟩 ITEM POR QUANTIDADE
+        // ============================
+        else {
+          const quantidadeAtual = item.quantidade ?? 0
+
+          if (quantidadeAtual <= 0) {
+            logEntry.logs.push(`Item ${item.nome} sem estoque`)
+            return
+          }
+
+          const quantidadeParaReservar = Math.min(quantidade, quantidadeAtual)
+
+          await tx.item.update({
+            where: { id: itemId },
+            data: {
+              quantidade: { decrement: quantidadeParaReservar },
+              reservado: quantidadeAtual - quantidadeParaReservar === 0,
+              reservadoPor: reservadoPorAtual,
+              reservadoEm: new Date(),
+            },
+          })
+
+          logEntry.logs.push(
+            `Item por quantidade: ${item.nome} | ${quantidadeParaReservar}`,
+          )
+        }
+
+        // 🔒 MARCA COMO PROCESSADO
+        await tx.pagamentoProcessado.create({
+          data: {
+            paymentId: String(payment.id),
+            itemId,
+          },
+        })
+
+        logEntry.itemIdsAffected.push(itemId)
+        logEntry.statusProcessed = 'approved'
       })
-
-      logEntry.itemIdsAffected.push(itemId)
-      logEntry.logs.push(`Item ${itemId} atualizado com ${quantidade} cota(s)`)
-      logEntry.statusProcessed = 'approved'
     }
 
-    // === 1) Notificações de pagamento ===
+    // ============================
+    // PAYMENT
+    // ============================
     if (body.type === 'payment' && body.data?.id) {
-      const paymentId = body.data.id
-
-      const resPayment = await fetch(
-        `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      const res = await fetch(
+        `https://api.mercadopago.com/v1/payments/${body.data.id}`,
         { headers: { Authorization: `Bearer ${token}` } },
       )
 
-      if (!resPayment.ok) {
-        const errorText = await resPayment.text()
-        console.error('Erro ao buscar pagamento:', errorText)
-        logEntry.logs.push(`Erro ao buscar pagamento: ${errorText}`)
-        await prisma.webhookLog.create({ data: logEntry })
-        return NextResponse.json({ received: true })
-      }
-
-      const payment = await resPayment.json()
+      const payment = await res.json()
       logEntry.fetchedResource = payment
 
       await processarPagamentoAprovado(payment)
       await prisma.webhookLog.create({ data: logEntry })
+
       return NextResponse.json({ received: true })
     }
 
-    // === 2) Notificações de merchant_order (ordem de compra) ===
+    // ============================
+    // MERCHANT ORDER
+    // ============================
     if (body.topic === 'merchant_order' && body.resource) {
-      const resOrder = await fetch(body.resource, {
+      const res = await fetch(body.resource, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      if (!resOrder.ok) {
-        const errorText = await resOrder.text()
-        console.error('Erro ao buscar merchant_order:', errorText)
-        logEntry.logs.push(`Erro ao buscar merchant_order: ${errorText}`)
-        await prisma.webhookLog.create({ data: logEntry })
-        return NextResponse.json({ received: true })
-      }
-
-      const order = await resOrder.json()
+      const order = await res.json()
       logEntry.fetchedResource = order
-      console.log('Detalhes da ordem:', order)
 
-      // Processa todos os pagamentos da ordem
       for (const p of order.payments || []) {
         await processarPagamentoAprovado(p)
       }
@@ -138,16 +198,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true })
     }
 
-    // Tipo de webhook não tratado
-    logEntry.logs.push(
-      `Tipo de webhook não tratado: ${body.type || body.topic}`,
-    )
+    logEntry.logs.push('Webhook ignorado')
     await prisma.webhookLog.create({ data: logEntry })
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error('Erro no webhook:', err)
     logEntry.logs.push(`Erro interno: ${String(err)}`)
     await prisma.webhookLog.create({ data: logEntry })
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

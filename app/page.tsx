@@ -4,9 +4,19 @@ import Cookies from 'js-cookie'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useState, useEffect, useRef } from 'react'
 import { AcompanhanteInput } from './components/inputsAcompanhantes'
-import { Session } from 'next-auth'
 import Link from 'next/link'
 import { templateConfirmacaoPresenca } from './utils/emailTamplate'
+import Confetes from './components/confetes'
+import { loadPartySound } from './utils/useConfeteSom'
+
+export function SoundPreload() {
+  useEffect(() => {
+    loadPartySound()
+  }, [])
+
+  return null
+}
+
 type Acompanhante = {
   id: string
   nome: string
@@ -45,6 +55,7 @@ export default function AreaLogada() {
   const [exibirAcompanhantes, setExibirAcompanhantes] = useState(false)
   const [motivoAusencia, setMotivoAusencia] = useState('')
   const [mensagemAusencia, setMensagemAusencia] = useState('')
+  const [showConfetes, setShowConfetes] = useState(false)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -60,55 +71,54 @@ export default function AreaLogada() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  useEffect(() => {
+  // Chama a API para criar usuário apenas se houver sessão
+  const criarUsuario = async () => {
     if (!session?.user) return
+    try {
+      const res = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: session.user.name,
+          email: session.user.email,
+          imagemUrl: session.user.image,
+          confirmouPresenca: false,
+        }),
+      })
 
-    // Chama a API para criar usuário apenas se houver sessão
-    const criarUsuario = async () => {
-      try {
-        const res = await fetch('/api/usuarios', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nome: session.user.name,
-            email: session.user.email,
-            imagemUrl: session.user.image,
-            confirmouPresenca: false,
-          }),
-        })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar usuário')
 
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Erro ao criar usuário')
-
-        console.log('Usuário criado ou já existente:', data)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        console.error(err)
-      }
+      console.log('Usuário criado ou já existente:', data)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error(err)
     }
-    const presencaConfirmada = async () => {
-      try {
-        const res = await fetch(`/api/usuarios?email=${session.user.email}`)
-        if (!res.ok) throw new Error('Erro ao verificar presença')
-        const data = await res.json()
-        console.log('Dados do usuário:', data)
-        setUsuarioData(data?.[0] || null)
-        return data
-      } catch (err) {
-        console.error(err)
-        return false
-      }
+  }
+  const presencaConfirmada = async () => {
+    if (!session?.user?.email) return
+    try {
+      const res = await fetch(`/api/usuarios?email=${session.user.email}`)
+      if (!res.ok) throw new Error('Erro ao verificar presença')
+      const data = await res.json()
+      console.log('Dados do usuário:', data)
+      setUsuarioData(data?.[0] || null)
+      return data
+    } catch (err) {
+      console.error(err)
+      return false
     }
-    const verificarPresenca = async () => {
-      const confirmada = await presencaConfirmada()
-      if (!confirmada) {
-        criarUsuario()
-      }
+  }
+  const verificarPresenca = async () => {
+    const confirmada = await presencaConfirmada()
+    if (!confirmada) {
+      criarUsuario()
     }
+  }
 
-    verificarPresenca()
-
+  useEffect(() => {
     if (session?.user) {
+      verificarPresenca()
       // Salva a sessão no cookie para uso posterior
       Cookies.set('session', JSON.stringify(session), { expires: 1 }) // expira em 1 dia
     } else {
@@ -187,10 +197,16 @@ export default function AreaLogada() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro desconhecido')
 
+      verificarPresenca() // Atualiza os dados do usuário após confirmar presença
       setShowModal(false)
+      enviarEmail()
       alert('Presença confirmada ✅')
-      enviarEmail() // Envia o e-mail de confirmação
-      window.location.reload() // Recarrega a página para atualizar o estado de presença
+
+      setShowConfetes(true)
+
+      setTimeout(() => {
+        setShowConfetes(false)
+      }, 5000)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -238,6 +254,7 @@ export default function AreaLogada() {
 
   return (
     <div className="min-h-screen bg-gray-100 px-4 py-6 text-gray-600">
+      <Confetes ativo={showConfetes} />
       <div className="mx-auto w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
         {/* Header */}
         <div className="mb-6 flex flex-col items-center">
@@ -303,9 +320,14 @@ export default function AreaLogada() {
               </label>
               <div className="flex gap-2">
                 <button
-                  onClick={() =>
-                    confirmou === true ? setConfirmou(null) : setConfirmou(true)
-                  }
+                  onClick={() => {
+                    if (confirmou === true) {
+                      setConfirmou(null)
+                    } else {
+                      setConfirmou(true)
+                    }
+                    loadPartySound()
+                  }}
                   className={`w-[50%] cursor-pointer rounded-xl bg-gray-200 p-2 transition hover:bg-gray-300 ${confirmou === true ? 'bg-green-500 font-bold text-white hover:bg-green-600' : ''}`}
                   type="button"
                 >
@@ -320,6 +342,7 @@ export default function AreaLogada() {
                       setExibirAcompanhantes(false)
                       setAcompanhantes([{ id: '1', nome: '', tipo: '' }])
                     }
+                    loadPartySound()
                   }}
                   className={`w-[50%] cursor-pointer rounded-xl bg-gray-200 p-2 transition hover:bg-gray-300 ${confirmou === false ? 'bg-red-500 font-bold text-white hover:bg-red-600' : ''}`}
                   type="button"

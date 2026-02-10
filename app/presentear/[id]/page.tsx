@@ -67,12 +67,17 @@ export default function DetalhesPresente() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           valor: totalPagar,
-          descricao: `🎁 ${presente.nome} `,
+          titulo: `🎁 ${presente.nome} `,
+          descricao: `Presentando o casal com ${presente.nome} no chá casa nova. ${quantidade > 1 ? `Quantidade: ${quantidade}. ` : ''}Presenteado por: ${csession?.user?.name || 'Anônimo'}.`,
+          urlFoto: presente.imagemUrl,
+          categoria: presente.categoria,
+          usuario_email: csession?.user?.email || null,
+          usuario_nome: csession?.user?.name || null,
           external_reference: JSON.stringify({
             id: presente.id,
             quantidade: quantidade,
             usuarioName: csession?.user?.name || 'Anônimo',
-          }), // para referência futura no webhook
+          }),
         }),
       })
 

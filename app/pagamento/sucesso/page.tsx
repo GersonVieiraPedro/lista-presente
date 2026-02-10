@@ -23,7 +23,7 @@ export default function PagamentoSucesso() {
         </div>
 
         <Link
-          href="/lista"
+          href="/lista?presenteou=true"
           className="block rounded-xl bg-zinc-900 px-4 py-3 font-bold text-white transition hover:bg-zinc-700"
         >
           Voltar para a lista

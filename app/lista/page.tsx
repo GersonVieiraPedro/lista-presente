@@ -6,12 +6,19 @@ import dados from '../data/itens.json'
 import { useEffect, useMemo, useState } from 'react'
 import PainelFiltros from '../components/PainelFiltros'
 import InfoCotas from '../components/infoCotas'
+import { loadPartySound } from '../utils/useConfeteSom'
+import Confetes from '../components/confetes'
+import { useSearchParams } from 'next/navigation'
 
 export default function Home() {
   const [busca, setBusca] = useState('')
   const [ordenacao, setOrdenacao] = useState('')
   const [itens, setItens] = useState<typeof dados.itens>([])
-  //const [loading, setLoading] = useState(true)
+  const [showConfetes, setShowConfetes] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [presenteou, setPresenteou] = useState<boolean | null>(null)
+
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function fetchItens() {
@@ -28,7 +35,13 @@ export default function Home() {
       } finally {
       }
     }
+    loadPartySound()
 
+    const value = searchParams.get('presenteou') === 'true'
+    if (value === true) {
+      setPresenteou(value)
+      setShowModal(true)
+    }
     fetchItens()
   }, [])
 
@@ -69,8 +82,40 @@ export default function Home() {
         ordenacao={ordenacao}
         setOrdenacao={setOrdenacao}
       />
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="animate-in fade-in zoom-in mx-auto max-w-md space-y-6 rounded-2xl bg-white p-8 text-center text-zinc-700 shadow-xl">
+            <h1 className="text-2xl font-bold text-yellow-600">
+              Presente Recebido! 🎉
+            </h1>
 
-      <section className="mx-auto max-w-6xl px-4 py-14">
+            <p className="text-sm leading-relaxed text-zinc-600">
+              Recebemos seu presente com o coração cheio de alegria 💛 Muito
+              obrigado por esse carinho! Sua presença e esse gesto tornam esse
+              momento ainda mais especial para nós. Mal podemos esperar para
+              celebrar juntos!
+            </p>
+
+            <button
+              onClick={() => {
+                setShowModal(false)
+                setShowConfetes(true)
+              }}
+              className="w-full rounded-xl bg-zinc-700 py-2 font-semibold text-white transition hover:bg-zinc-800 active:scale-95"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+      {presenteou && <Confetes ativo={showConfetes} />}
+
+      <section
+        onClick={() => {
+          setShowConfetes(!showConfetes)
+        }}
+        className="mx-auto max-w-6xl px-4 py-14"
+      >
         <InfoCotas />
         <h2 className="font-title mb-8 text-center text-3xl font-semibold text-zinc-800">
           Lista de Presentes

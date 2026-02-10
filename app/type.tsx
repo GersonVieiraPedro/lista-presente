@@ -9,4 +9,5 @@ export type Presente = {
   cotas?: number
   cotasReservadas?: number
   cotasValor?: number
+  quantidade?: number
 }

@@ -3,7 +3,16 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { valor, descricao } = body // ambiente: 'sandbox' | 'prod'
+    const {
+      titulo,
+      valor,
+      descricao,
+      urlFoto,
+      categoria,
+      usuario_email,
+      usuario_nome,
+      external_reference,
+    } = body
 
     // Define token dependendo do ambiente
     const token =
@@ -33,11 +42,18 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           items: [
             {
-              title: descricao,
+              title: titulo,
+              description: descricao,
+              picture_url: urlFoto,
+              category_id: categoria,
               quantity: 1,
               unit_price: Number(valor),
             },
           ],
+          payer: {
+            email: usuario_email || '',
+            name: usuario_nome || '',
+          },
 
           back_urls: {
             success: `${process.env.NEXT_PUBLIC_WEBHOOK_URL}/pagamento/sucesso`,
@@ -45,8 +61,8 @@ export async function POST(req: Request) {
             failure: `${process.env.NEXT_PUBLIC_WEBHOOK_URL}/pagamento/erro`,
           },
           notification_url: notificationUrl,
-          external_reference: body.external_reference, // para referência futura no webhook
-
+          external_reference: external_reference, // para referência futura no webhook
+          statement_descriptor: 'Lista de Presentes',
           auto_return: 'approved',
           binary_mode: false,
         }),
@@ -60,7 +76,7 @@ export async function POST(req: Request) {
       return NextResponse.json(data, { status: response.status })
     }
 
-    console.log('Preferência criada:', data)
+    //console.log('Preferência criada:', data)
 
     // Retorna o link correto para o frontend abrir
     return NextResponse.json({

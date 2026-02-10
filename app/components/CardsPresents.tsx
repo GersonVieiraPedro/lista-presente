@@ -15,6 +15,7 @@ export function CardPresente(props: Props) {
     categoria,
     cotas,
     cotasValor,
+    quantidade,
   } = props
 
   return (
@@ -51,6 +52,9 @@ export function CardPresente(props: Props) {
             {cotas && cotas > 1
               ? `Cota: R$ ${cotasValor?.toFixed(2).replace('.', ',')}`
               : ''}
+          </p>
+          <p className="text-[12px] text-gray-600">
+            {(quantidade ?? 0) > 1 ? `Qtde: ${quantidade} unidades` : ''}
           </p>
         </div>
         <ItemReservado

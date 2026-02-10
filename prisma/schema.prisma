@@ -111,3 +111,10 @@ model item_backup {
   atualizadoEm    DateTime   @default(now()) @updatedAt
   linkFora        String?
 }
+
+model PagamentoProcessado {
+  id        String   @id @default(cuid())
+  paymentId String   @unique
+  itemId    String
+  createdAt DateTime @default(now())
+}
