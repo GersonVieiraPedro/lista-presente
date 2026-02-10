@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Playfair_Display, Montserrat } from 'next/font/google'
 import { Providers } from './providers'
 import './globals.css'
-
+import { Analytics } from '@vercel/analytics/next'
 // Fonte para Títulos
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -35,7 +35,10 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${playfair.variable} ${montserrat.variable} font-sans`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   )
