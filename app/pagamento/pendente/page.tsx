@@ -63,15 +63,18 @@ export default function PagamentoPendente() {
 
           <div className="rounded-xl bg-white p-6 text-zinc-700 shadow">
             <p>
-              ID da transação: <strong>145334452062</strong>
+              ID da transação: <strong>{preferenceId}</strong>
             </p>
             <p>
-              Metodo de pagamento: <strong>PIX</strong>
+              Metodo de pagamento:{' '}
+              <strong className="h-8 w-20 transform animate-pulse bg-gray-300">
+                PIX
+              </strong>
             </p>
           </div>
 
           <Link
-            href="/lista"
+            href="/lista?presenteou=true"
             className="block rounded-xl bg-zinc-900 px-4 py-3 font-bold text-white transition hover:bg-zinc-700"
           >
             Voltar para a lista
