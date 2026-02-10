@@ -257,6 +257,7 @@ export default function DetalhesPresente() {
               )}
             </Link>
             <a
+              target="_blank"
               className="flex w-full items-center justify-center text-center text-gray-600"
               href={presente.linkFora}
             >
