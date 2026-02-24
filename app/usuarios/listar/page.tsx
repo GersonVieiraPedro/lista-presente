@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { templateConfirmacaoReservaPresente } from '@/app/utils/emailTamplate'
 
 interface Presenca {
   id: string
@@ -28,6 +31,62 @@ export default function ListaUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(
+    null,
+  )
+  const [itens, setItens] = useState<any[]>([])
+
+  const [itemSelecionado, setItemSelecionado] = useState<{
+    id: string
+    nome: string
+    imagemUrl: string
+    linkFora?: string
+    descricao?: string
+  } | null>(null)
+
+  function abrirModal(user: Usuario) {
+    setUsuarioSelecionado(user)
+    setItemSelecionado(null)
+    setModalOpen(true)
+  }
+  async function enviarEmail() {
+    if (!usuarioSelecionado || !itemSelecionado) {
+      alert('Selecione um item antes de enviar.')
+      return
+    }
+
+    try {
+      await fetch('/api/enviar-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: [
+            usuarioSelecionado.email,
+            'vitoria20.03@hotmail.com',
+            'gerson123vieira@gmail.com',
+          ],
+          subject: 'Confirmação de Presente Chá de Casa Nova',
+          nome: usuarioSelecionado.nome,
+          html: templateConfirmacaoReservaPresente(
+            usuarioSelecionado.nome,
+            itemSelecionado.nome,
+            itemSelecionado.imagemUrl,
+            'https://www.gerson-vieira-pedro.com.br/lista?presenteou=true',
+            itemSelecionado.descricao || undefined,
+            itemSelecionado.linkFora || undefined,
+            0,
+          ),
+        }),
+      })
+
+      alert('E-mail enviado com sucesso!')
+      setModalOpen(false)
+    } catch (error) {
+      console.error(error)
+      alert('Erro ao enviar e-mail')
+    }
+  }
 
   async function fetchUsuarios() {
     try {
@@ -41,9 +100,24 @@ export default function ListaUsuarios() {
       console.error(err)
     }
   }
+  async function fetchItens() {
+    try {
+      const res = await fetch(
+        '/api/itens?listaId=1ff541bd-515b-4fa0-a7dc-3f016f54852e',
+      )
+      if (!res.ok) throw new Error('Erro ao buscar itens')
+      const data = await res.json()
+      console.log('Itens carregados:', data)
+      setItens(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+    }
+  }
 
   useEffect(() => {
     fetchUsuarios()
+    fetchItens()
   }, [])
 
   function toggleExpand(id: string) {
@@ -217,7 +291,7 @@ export default function ListaUsuarios() {
                 <div key={user.id} className="border-t">
                   <div
                     onClick={() => toggleExpand(user.id)}
-                    className="grid cursor-pointer grid-cols-[2fr_2fr_1fr_1fr_1fr] items-center p-4 hover:bg-gray-50"
+                    className="grid cursor-pointer grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr] items-center p-4 hover:bg-gray-50"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <Image
@@ -242,9 +316,86 @@ export default function ListaUsuarios() {
                       {user._count.presencas}
                     </div>
 
-                    <div className="text-sm text-gray-500">
+                    <div className="rounded-lg bg-gray-100 p-2 text-center text-sm text-gray-500">
                       {isExpanded ? 'Fechar' : 'Ver'}
                     </div>
+                    {/* BOTÃO LATERAL FIXO */}
+                    <button
+                      onClick={() => {
+                        if (!usuarios.length)
+                          return alert('Nenhum usuário disponível')
+                        abrirModal(user)
+                      }}
+                      className="ml-2 cursor-pointer rounded-lg bg-purple-600 p-2 text-sm font-semibold text-white transition hover:bg-purple-700"
+                    >
+                      Enviar E-mail 🎁
+                    </button>
+                    {/* MODAL ENVIO EMAIL */}
+                    {modalOpen && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center">
+                        <div className="w-full max-w-lg rounded-2xl border border-gray-300 bg-white p-6">
+                          <h2 className="mb-4 text-xl font-bold text-gray-800">
+                            Enviar Compra / Presenteação
+                          </h2>
+
+                          {usuarioSelecionado && (
+                            <p className="mb-4 text-sm text-gray-500">
+                              Destinatário:{' '}
+                              <strong>{usuarioSelecionado.nome}</strong> (
+                              {usuarioSelecionado.email})
+                            </p>
+                          )}
+
+                          <div className="max-h-80 space-y-4 overflow-y-auto">
+                            {itens.map((item) => (
+                              <div
+                                key={item.id}
+                                onClick={() => setItemSelecionado(item)}
+                                className={`flex cursor-pointer items-center gap-4 rounded-xl border p-3 transition ${
+                                  itemSelecionado?.id === item.id
+                                    ? 'border-purple-600 bg-purple-50'
+                                    : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                              >
+                                <img
+                                  src={item.imagemUrl || '/default-item.png'}
+                                  alt={item.nome}
+                                  className="size-15 max-h-15 rounded-lg object-cover"
+                                />
+
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-700">
+                                    {item.nome}
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="radio"
+                                  checked={itemSelecionado?.id === item.id}
+                                  readOnly
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-6 flex justify-end gap-3">
+                            <button
+                              onClick={() => setModalOpen(false)}
+                              className="cursor-pointer rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+                            >
+                              Cancelar
+                            </button>
+
+                            <button
+                              onClick={enviarEmail}
+                              className="cursor-pointer rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-purple-700"
+                            >
+                              Enviar E-mail
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div
